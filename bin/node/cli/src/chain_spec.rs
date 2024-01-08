@@ -365,6 +365,7 @@ pub fn testnet_genesis(
 			..Default::default()
 		},
 		glutton: Default::default(),
+		contracts: Default::default(),
 	}
 }
 

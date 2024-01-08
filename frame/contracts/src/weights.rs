@@ -66,7 +66,9 @@ pub trait WeightInfo {
 	fn instantiate(i: u32, s: u32, ) -> Weight;
 	fn call() -> Weight;
 	fn upload_code(c: u32, ) -> Weight;
+	fn replace_contract_master() -> Weight;
 	fn remove_code() -> Weight;
+	fn remove_contract_master() -> Weight;
 	fn set_code() -> Weight;
 	fn seal_caller(r: u32, ) -> Weight;
 	fn seal_is_contract(r: u32, ) -> Weight;
@@ -419,6 +421,17 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(3_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}
+	/// Storage: `Contracts::ContractMaster` (r:1 w:1)
+	/// Proof: `Contracts::ContractMaster` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
+	fn replace_contract_master() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `165`
+		//  Estimated: `1517`
+		// Minimum execution time: 9_600_000 picoseconds.
+		Weight::from_parts(10_076_000, 1517)
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
+	}
 	/// Storage: Contracts MigrationInProgress (r:1 w:0)
 	/// Proof: Contracts MigrationInProgress (max_values: Some(1), max_size: Some(1026), added: 1521, mode: Measured)
 	/// Storage: Contracts CodeInfoOf (r:1 w:1)
@@ -435,6 +448,17 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		Weight::from_parts(36_813_000, 3720)
 			.saturating_add(T::DbWeight::get().reads(3_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
+	}
+	/// Storage: `Contracts::ContractMaster` (r:1 w:1)
+	/// Proof: `Contracts::ContractMaster` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
+	fn remove_contract_master() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `165`
+		//  Estimated: `1517`
+		// Minimum execution time: 8_555_000 picoseconds.
+		Weight::from_parts(8_846_000, 1517)
+			.saturating_add(T::DbWeight::get().reads(1_u64))
+			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
 	/// Storage: Contracts MigrationInProgress (r:1 w:0)
 	/// Proof: Contracts MigrationInProgress (max_values: Some(1), max_size: Some(1026), added: 1521, mode: Measured)
@@ -2202,6 +2226,17 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(3_u64))
 			.saturating_add(RocksDbWeight::get().writes(3_u64))
 	}
+	/// Storage: `Contracts::ContractMaster` (r:1 w:1)
+	/// Proof: `Contracts::ContractMaster` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
+	fn replace_contract_master() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `165`
+		//  Estimated: `1517`
+		// Minimum execution time: 9_600_000 picoseconds.
+		Weight::from_parts(10_076_000, 1517)
+			.saturating_add(RocksDbWeight::get().reads(1_u64))
+			.saturating_add(RocksDbWeight::get().writes(1_u64))
+	}
 	/// Storage: Contracts MigrationInProgress (r:1 w:0)
 	/// Proof: Contracts MigrationInProgress (max_values: Some(1), max_size: Some(1026), added: 1521, mode: Measured)
 	/// Storage: Contracts CodeInfoOf (r:1 w:1)
@@ -2218,6 +2253,17 @@ impl WeightInfo for () {
 		Weight::from_parts(36_813_000, 3720)
 			.saturating_add(RocksDbWeight::get().reads(3_u64))
 			.saturating_add(RocksDbWeight::get().writes(3_u64))
+	}
+	/// Storage: `Contracts::ContractMaster` (r:1 w:1)
+	/// Proof: `Contracts::ContractMaster` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
+	fn remove_contract_master() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `165`
+		//  Estimated: `1517`
+		// Minimum execution time: 8_555_000 picoseconds.
+		Weight::from_parts(8_846_000, 1517)
+			.saturating_add(RocksDbWeight::get().reads(1_u64))
+			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
 	/// Storage: Contracts MigrationInProgress (r:1 w:0)
 	/// Proof: Contracts MigrationInProgress (max_values: Some(1), max_size: Some(1026), added: 1521, mode: Measured)

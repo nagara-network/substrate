@@ -181,7 +181,7 @@ const LOG_TARGET: &str = "runtime::contracts";
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::pallet_prelude::*;
+	use frame_support::{pallet_prelude::*, traits::BuildGenesisConfig};
 	use frame_system::pallet_prelude::*;
 
 	/// The current storage version.
@@ -195,6 +195,40 @@ pub mod pallet {
 	#[pallet::pallet]
 	#[pallet::storage_version(STORAGE_VERSION)]
 	pub struct Pallet<T>(_);
+
+	#[pallet::storage]
+	#[pallet::getter(fn contract_master)]
+	pub(super) type ContractMaster<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
+	impl<T: Config> Pallet<T> {
+		pub(crate) fn ensure_contract_master(origin: OriginFor<T>) -> DispatchResult {
+			let sender = ensure_signed_or_root(origin)?;
+
+			if let Some(sender) = sender {
+				if Self::contract_master().map_or(false, |c| c == sender) {
+					Ok(())
+				} else {
+					Err(Error::<T>::RequiresContractMaster.into())
+				}
+			} else {
+				Ok(())
+			}
+		}
+	}
+
+	#[pallet::genesis_config]
+	#[derive(frame_support::DefaultNoBound)]
+	pub struct GenesisConfig<T: Config> {
+		/// Contract Master `AccountId`
+		pub contract_master: Option<T::AccountId>,
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
+		fn build(&self) {
+			ContractMaster::<T>::set(self.contract_master.clone());
+		}
+	}
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -546,6 +580,7 @@ pub mod pallet {
 			determinism: Determinism,
 		) -> DispatchResult {
 			Migration::<T>::ensure_migrated()?;
+			Self::ensure_contract_master(origin.clone())?;
 			let origin = ensure_signed(origin)?;
 			Self::bare_upload_code(origin, code, storage_deposit_limit.map(Into::into), determinism)
 				.map(|_| ())
@@ -562,6 +597,7 @@ pub mod pallet {
 			code_hash: CodeHash<T>,
 		) -> DispatchResultWithPostInfo {
 			Migration::<T>::ensure_migrated()?;
+			Self::ensure_contract_master(origin.clone())?;
 			let origin = ensure_signed(origin)?;
 			<WasmBlob<T>>::remove(&origin, code_hash)?;
 			// we waive the fee because removing unused code is beneficial
@@ -586,6 +622,7 @@ pub mod pallet {
 			code_hash: CodeHash<T>,
 		) -> DispatchResult {
 			Migration::<T>::ensure_migrated()?;
+			Self::ensure_contract_master(origin.clone())?;
 			ensure_root(origin)?;
 			let dest = T::Lookup::lookup(dest)?;
 			<ContractInfoOf<T>>::try_mutate(&dest, |contract| {
@@ -695,6 +732,7 @@ pub mod pallet {
 			salt: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
 			Migration::<T>::ensure_migrated()?;
+			Self::ensure_contract_master(origin.clone())?;
 			let origin = ensure_signed(origin)?;
 			let code_len = code.len() as u32;
 
@@ -754,6 +792,7 @@ pub mod pallet {
 			salt: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
 			Migration::<T>::ensure_migrated()?;
+			Self::ensure_contract_master(origin.clone())?;
 			let data_len = data.len() as u32;
 			let salt_len = salt.len() as u32;
 			let common = CommonInput {
@@ -802,6 +841,42 @@ pub mod pallet {
 					Err(err.with_weight(T::WeightInfo::migrate()))
 				},
 			}
+		}
+
+		/// Replace Contract Master
+		#[pallet::call_index(10)]
+		#[pallet::weight(T::WeightInfo::replace_contract_master())]
+		pub fn replace_contract_master(
+			origin: OriginFor<T>,
+			new: AccountIdLookupOf<T>,
+		) -> DispatchResultWithPostInfo {
+			Self::ensure_contract_master(origin.clone())?;
+			let old_master = ensure_signed_or_root(origin)?;
+			let new_master = T::Lookup::lookup(new)?;
+			Self::deposit_event(
+				vec![T::Hashing::hash_of(b"contract-master-replaced")],
+				Event::ContractMasterReplaced { from: old_master, new: new_master.clone() },
+			);
+			ContractMaster::<T>::put(new_master);
+
+			// ContractMaster does not pay a fee.
+			Ok(Pays::No.into())
+		}
+
+		/// Remove Contract Master
+		#[pallet::call_index(11)]
+		#[pallet::weight(T::WeightInfo::remove_contract_master())]
+		pub fn remove_contract_master(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			Self::ensure_contract_master(origin.clone())?;
+			let who = ensure_signed_or_root(origin)?;
+			Self::deposit_event(
+				vec![T::Hashing::hash_of(b"contract-master-killed")],
+				Event::ContractMasterKilled { who },
+			);
+			ContractMaster::<T>::kill();
+
+			// ContractMaster does not pay a fee.
+			Ok(Pays::No.into())
 		}
 	}
 
@@ -876,6 +951,12 @@ pub mod pallet {
 			/// The code hash that was delegate called.
 			code_hash: CodeHash<T>,
 		},
+
+		/// New Contract Master has been replaced.
+		ContractMasterReplaced { from: Option<T::AccountId>, new: T::AccountId },
+
+		/// Contract Master killed.
+		ContractMasterKilled { who: Option<T::AccountId> },
 	}
 
 	#[pallet::error]
@@ -961,6 +1042,8 @@ pub mod pallet {
 		MigrationInProgress,
 		/// Migrate dispatch call was attempted but no migration was performed.
 		NoMigrationPerformed,
+		/// Require ContractMaster for uploading/instantiating contract
+		RequiresContractMaster,
 	}
 
 	/// A mapping from a contract's code hash to its code.
