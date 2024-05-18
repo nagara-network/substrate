@@ -425,7 +425,7 @@ impl TraitPair for Pair {
 		let Ok(public) = VerificationKey::try_from(public.as_slice()) else {
 			return false
 		};
-		let Ok(signature) = ed25519_zebra::Signature::try_from(sig.as_ref()) else {
+		let Ok(signature) = ed25519_zebra::Signature::try_from(sig.0.as_slice()) else {
 			return false
 		};
 		public.verify(&signature, message.as_ref()).is_ok()
